@@ -30,7 +30,6 @@ This course is free. Anyone who has dabbled with code and AI is qualified to wor
 our-mission
 llm-wtf
 groq
-jupyter-desktop
 prompting-with-python
 structured-responses
 bulk-prompts
