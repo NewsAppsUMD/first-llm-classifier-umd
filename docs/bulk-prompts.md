@@ -6,14 +6,14 @@ One solution is to submit your requests in batches and then ask the LLM to retur
 
 A common way to do that is to prompt the LLM to return its responses in JSON, a JavaScript data format that is easy to work with in Python. 
 
-To try that, we start by adding the built-in `json` library to our imports.
+To try that, we start by adding the built-in `json` library to our imports in `classifier.py`
 
-{emphasize-lines="1"}
+{emphasize-lines="2"}
 ```python
+import os
 import json
-from rich import print
-from groq import Groq
 from retry import retry
+from groq import Groq
 ```
 
 Next, we make a series of changes to our function to adapt it to work with a batch of inputs. Get ready. It's a lot.
@@ -34,31 +34,31 @@ Next, we make a series of changes to our function to adapt it to work with a bat
 @retry(ValueError, tries=2, delay=2)
 def classify_teams(name_list):
     prompt = """
-You are an AI model trained to classify text.
+    You are an AI model trained to classify text.
 
-I will provide list of professional sports team names separated by new lines
+    I will provide list of professional sports team names separated by new lines
 
-You will reply with the sports league in which they compete.
+    You will reply with the sports league in which they compete.
 
-Your responses must come from the following list:
-- Major League Baseball (MLB)
-- National Football League (NFL)
-- National Basketball Association (NBA)
+    Your responses must come from the following list:
+    - Major League Baseball (MLB)
+    - National Football League (NFL)
+    - National Basketball Association (NBA)
 
-If the team's league is not on the list, you should label them as "Other".
+    If the team's league is not on the list, you should label them as "Other".
 
-Your answers should be returned as a flat JSON list.
+    Your answers should be returned as a flat JSON list.
 
-It is very important that the length of JSON list you return is exactly the same as the number of names you receive.
+    It is very important that the length of JSON list you return is exactly the same as the number of names you receive.
 
-If I were to submit:
+    If I were to submit:
 
-"Los Angeles Rams\nLos Angeles Dodgers\nLos Angeles Lakers\nLos Angeles Kings"
+    "Los Angeles Rams\nLos Angeles Dodgers\nLos Angeles Lakers\nLos Angeles Kings"
 
-You should return the following:
+    You should return the following:
 
-["National Football League (NFL)", "Major League Baseball (MLB)", "National Basketball Association (NBA)", "Other"]
-"""
+    ["National Football League (NFL)", "Major League Baseball (MLB)", "National Basketball Association (NBA)", "Other"]
+    """
 
     response = client.chat.completions.create(
         messages=[
@@ -99,18 +99,19 @@ You should return the following:
     return dict(zip(name_list, answer_list))
 ```
 
-Try that with our team list.
+Try that with our team list. At the bottom, instead of the loop, just put this:
 
 ```python
 classify_teams(team_list)
 ```
 
-And you'll see that it works with only a single API call. The same technique will work for a batch of any size.
+And re-run the classifier. You'll see that it works with only a single API call. The same technique will work for a batch of any size.
 
 ```python
 {'Minnesota Twins': 'Major League Baseball (MLB)',
  'Minnesota Vikings': 'National Football League (NFL)',
- 'Minnesota Timberwolves': 'National Basketball Association (NBA)'}
+ 'Minnesota Timberwolves': 'National Basketball Association (NBA)',
+ 'Minnesota Wild': 'Other'}
 ```
 
 Though, as you batches get bigger, one common problem is that the number of outputs from the LLM can fail to match the number of inputs you provide. This problem may lessen as LLMs improve, but for now it's a good idea to limit to batches to a few dozen inputs and to verify that you're getting the right number back.
@@ -120,31 +121,31 @@ Though, as you batches get bigger, one common problem is that the number of outp
 @retry(ValueError, tries=2, delay=2)
 def classify_teams(name_list):
     prompt = """
-You are an AI model trained to classify text.
+    You are an AI model trained to classify text.
 
-I will provide list of professional sports team names separated by new lines
+    I will provide list of professional sports team names separated by new lines
 
-You will reply with the sports league in which they compete.
+    You will reply with the sports league in which they compete.
 
-Your responses must come from the following list:
-- Major League Baseball (MLB)
-- National Football League (NFL)
-- National Basketball Association (NBA)
+    Your responses must come from the following list:
+    - Major League Baseball (MLB)
+    - National Football League (NFL)
+    - National Basketball Association (NBA)
 
-If the team's league is not on the list, you should label them as "Other".
+    If the team's league is not on the list, you should label them as "Other".
 
-Your answers should be returned as a flat JSON list.
+    Your answers should be returned as a flat JSON list.
 
-It is very important that the length of JSON list you return is exactly the same as the number of names you receive.
+    It is very important that the length of JSON list you return is exactly the same as the number of names you receive.
 
-If I were to submit:
+    If I were to submit:
 
-"Los Angeles Rams\nLos Angeles Dodgers\nLos Angeles Lakers\nLos Angeles Kings"
+    "Los Angeles Rams\nLos Angeles Dodgers\nLos Angeles Lakers\nLos Angeles Kings"
 
-You should return the following:
+    You should return the following:
 
-["National Football League (NFL)", "Major League Baseball (MLB)", "National Basketball Association (NBA)", "Other"]
-"""
+    ["National Football League (NFL)", "Major League Baseball (MLB)", "National Basketball Association (NBA)", "Other"]
+    """
 
     response = client.chat.completions.create(
         messages=[
@@ -190,31 +191,41 @@ You should return the following:
     return dict(zip(name_list, answer_list))
 ```
 
-Okay. Naming sports teams is a cute trick, but what about something hard? And whatever happened to that George Santos idea?
+Okay. Naming sports teams is a cute trick, but what about something hard? 
 
 We'll tackle that by pulling in our example dataset using `pandas`, a popular data manipulation library in Python.
 
-First, we need to install it. Back to our installation cell.
+First, we need to install it. Back to the terminal:
 
-```text
-%pip install groq rich ipywidgets retry pandas
+```bash
+pip install pandas
 ```
 
-Then import it.
+Let's create a new file for our specific classifier, and call it `classifier_md.py`:
+
+```bash
+touch classifier_md.py
+```
+
+Let's edit that file, adding the imports and Groq setup:
 
 {emphasize-lines="5"}
 ```python
+import os
 import json
-from rich import print
 from groq import Groq
 from retry import retry
 import pandas as pd
+
+api_key = os.environ.get('GROQ_API_KEY')
+client = Groq(api_key=api_key)
 ```
 
-Now we're ready to load the California expenditures data prepared for the class. It contains the distinct list of all vendors listed as payees in itemized receipts attached to disclosure filings.
+Now we're ready to load the Maryland grantees data prepared for the class. It contains the distinct list of all recipients listed as grantees in [this data](https://opendata.maryland.gov/Budget/State-of-Maryland-Grant-and-Loan-Data-FY2009-to-FY/absk-avps/data_preview). Let's take a look by starting a Python shell in the terminal and putting these lines in:
 
 ```python
-df = pd.read_csv("https://raw.githubusercontent.com/palewire/first-llm-classifier/refs/heads/main/_notebooks/Form460ScheduleESubItem.csv")
+import pandas as pd
+df = pd.read_csv("https://raw.githubusercontent.com/dwillis/datajournalismbook-maryland/refs/heads/main/data/grantees.csv")
 ```
 
 Have a look at a random sample to get a taste of what's in there.
@@ -224,49 +235,49 @@ df.sample(10)
 ```
 
 ```
-payee
-10292	NICK & STEF'S
-13392	SPIKE TV
-4705	EQUALITY FOR ALL - NO ON 8
-1037	ATLANTA BOOK SELLERS
-11716	QUICK MESSENGER SERVICE
-12365	RUBIOS MEXICAN GRILL
-7761	KIMBERLY A. AGUIRRE
-223	ACCUZIP, INC.
-19	2000 COPIER & FAX, INC.
-7989	KOZT
+                                                Grantee
+742             PHILLIPS WARFT ENVIRONMENTAL CENTER INC
+4848                   HOUSING AUTHORITY ST MARYS CO MD
+29                                     TURNER FARMS INC
+4425                       ANNE ARUNDEL COUNTY MARYLAND
+195                               ONE DAY AT A TIME INC
+5818            FAMILY LEAGUE OF BALTIMORE CITY INC LMB
+3571  UNIVERSITY OF MARYLAND COLLEGE PARK FOUNDATIONSTA
+5036        HABITAT FOR HUMANITY OF WICOMICO COUNTY INC
+6017         CHOPTANK COMMUNITY HEALTH SYSTEM  CAROLINE
+5433              FAMILY AND MEDICAL COUNSELING SERVICE
 ```
 
-Now let's adapt what we have to fit. Instead of asking for a sports league back, we will ask the LLM to classify each payee as a restaurant, bar, hotel or other establishment.
+Now let's adapt what we have to fit. Instead of asking for a sports league back, we will ask the LLM to classify each payee as a higher education institution, a museum, local government agency or other establishment. Add this function to your new classifier script.
 
 {emphasize-lines="2-26,33-48,61-66"}
 ```python
 @retry(ValueError, tries=2, delay=2)
-def classify_payees(name_list):
-    prompt = """You are an AI model trained to categorize businesses based on their names.
+def classify_grantees(name_list):
+    prompt = """You are an AI model trained to categorize organizations based on their names.
 
-You will be given a list of business names, each separated by a new line.
+    You will be given a list of organization names, each separated by a new line.
 
-Your task is to analyze each name and classify it into one of the following categories: Restaurant, Bar, Hotel, or Other.
+    Your task is to analyze each name and classify it into one of the following categories: Higher Education, Museum, Local Government, or Other.
 
-It is extremely critical that there is a corresponding category output for each business name provided as an input.
+    It is extremely critical that there is a corresponding category output for each organization name provided as an input.
 
-If a business does not clearly fall into Restaurant, Bar, or Hotel categories, you should classify it as "Other".
+    If a organization does not clearly fall into Higher Education, Museum, or Local Government categories, you should classify it as "Other".
 
-Even if the type of business is not immediately clear from the name, it is essential that you provide your best guess based on the information available to you. If you can't make a good guess, classify it as Other.
+    Even if the type of organization is not immediately clear from the name, it is essential that you provide your best guess based on the information available to you. If you can't make a good guess, classify it as Other.
 
-For example, if given the following input:
+    For example, if given the following input:
 
-"Intercontinental Hotel\nPizza Hut\nCheers\nWelsh's Family Restaurant\nKTLA\nDirect Mailing"
+    "ANNE ARUNDEL COUNTY MARYLAND\nJOHN HOPKINS UNIVERSITY\nLEDOS PIZZA\nFREDERICK MEMORIAL HOSPITAL\nANNAPOLIS MARITIME MUSEUM\nCOLLEGE OF NOTRE DAME OF MARYLAND"
 
-Your output should be a JSON list in the following format:
+    Your output should be a JSON list in the following format:
 
-["Hotel", "Restaurant", "Bar", "Restaurant", "Other", "Other"]
+    ["Local Government", "Higher Education", "Other", "Other", "Museum", "Higher Education"]
 
-This means that you have classified "Intercontinental Hotel" as a Hotel, "Pizza Hut" as a Restaurant, "Cheers" as a Bar, "Welsh's Family Restaurant" as a Restaurant, and both "KTLA" and "Direct Mailing" as Other.
+    This means that you have classified "ANNE ARUNDEL COUNTY MARYLAND" as a Local Government, "JOHN HOPKINS UNIVERSITY" as Higher Educatio, "LEDOS PIZZA" as Other, "FREDERICK MEMORIAL HOSPITAL" as Other, "ANNAPOLIS MARITIME MUSEUM" as Museum and "COLLEGE OF NOTRE DAME OF MARYLAND" as Higher Education.
 
-Ensure that the number of classifications in your output matches the number of business names in the input. It is very important that the length of JSON list you return is exactly the same as the number of business names youyou receive.
-"""
+    Ensure that the number of classifications in your output matches the number of organization names in the input. It is very important that the length of JSON list you return is exactly the same as the number of organization names you receive.
+    """
     response = client.chat.completions.create(
         messages=[
             {
@@ -275,19 +286,19 @@ Ensure that the number of classifications in your output matches the number of b
             },
             {
                 "role": "user",
-                "content": "Intercontinental Hotel\nPizza Hut\nCheers\nWelsh's Family Restaurant\nKTLA\nDirect Mailing",
+                "content": "ANNE ARUNDEL COUNTY MARYLAND\nJOHN HOPKINS UNIVERSITY\nLEDOS PIZZA\nFREDERICK MEMORIAL HOSPITAL\nANNAPOLIS MARITIME MUSEUM\nCOLLEGE OF NOTRE DAME OF MARYLAND",
             },
             {
                 "role": "assistant",
-                "content": '["Hotel", "Restaurant", "Bar", "Restaurant", "Other", "Other"]',
+                "content": '["Local Government", "Higher Education", "Other", "Other", "Museum", "Higher Education"]',
             },
             {
                 "role": "user",
-                "content": "Subway Sandwiches\nRuth Chris Steakhouse\nPolitical Consulting Co\nThe Lamb's Club",
+                "content": "MD CENTER AT BOWIE STATE UNIVERSITY\nBALTIMORE CHILDRENS MUSEUM INCPORT DISCOVERY\nWMATA\nANNE ARUNDEL COUNTY COMMUNITY ACTION AGENCY",
             },
             {
                 "role": "assistant",
-                "content": '["Restaurant", "Restaurant", "Other", "Bar"]',
+                "content": '["Higher Education", "Museum", "Other", "Local Government"]',
             },
             {
                 "role": "user",
@@ -302,9 +313,9 @@ Ensure that the number of classifications in your output matches the number of b
     answer_list = json.loads(answer_str)
 
     acceptable_answers = [
-        "Restaurant",
-        "Bar",
-        "Hotel",
+        "Local Government",
+        "Higher Education",
+        "Museum",
         "Other",
     ]
     for answer in answer_list:
@@ -319,29 +330,22 @@ Ensure that the number of classifications in your output matches the number of b
     return dict(zip(name_list, answer_list))
 ```
 
-Now pull out a random sample of payees as a list.
+Now pull out a random sample of grantees as a list and put that at the bottom of the script.
 
 ```python
-sample_list = list(df.sample(10).payee)
+df = pd.read_csv("https://raw.githubusercontent.com/dwillis/datajournalismbook-maryland/refs/heads/main/data/grantees.csv")
+sample_list = list(df.sample(10).Grantee)
+print(classify_grantees(sample_list))
 ```
 
-And see how it does.
+Save `classifier_umd.py` and see how it does.
 
-```python
-classify_payees(sample_list)
+```bash
+python classifier_umd.py
 ```
 
 ```python
-{'ARCLIGHT CINEMAS': 'Other',
- '99 CENTS ONLY': 'Other',
- 'COMMONWEALTH COMMUNICATIONS': 'Other',
- 'CHILBO MYUNOK': 'Other',
- 'ADAM SCHIFF FOR SENATE': 'Other',
- 'CENTER FOR CREATIVE FUNDING': 'Other',
- 'JOE SHAW FOR HUNTINGTON BEACH CITY COUNCIL 2014': 'Other',
- "MULVANEY'S BUILDING & LOAN": 'Other',
- 'ATV VIDEO CENTER': 'Other',
- 'HYATT REGENCY SAN FRANCISCO': 'Hotel'}
+{'SALISBURY STATE UNIVERSITY': 'Higher Education', 'LOCAL MANAGEMENT BOARD OF ALLEGANY CO INC': 'Local Government', 'WILLIS REDDEN': 'Other', 'ELB AUTOMOTIVE INC': 'Other', 'CATHOLIC CHARITIES ARCHDIOCESE OF WASHINGTON': 'Other', 'MARYLAND PARTNERSHIP FOR PREVENTION INC': 'Other', 'UNIVERSITY OF MARYLAND BALTIMORE COUNTY  CENTER FOR WOMEN  INFORMATION TECH': 'Higher Education', 'THE ARC OF HOWARD COUNTY INC': 'Other', 'METRO LAUNDRY CORPORATION': 'Other', 'EUI J CHOI': 'Other'}
 ```
 
 That's nice for a sample. But how do you loop through the entire dataset and code them.
@@ -357,20 +361,24 @@ def get_batch_list(li, n=10):
     return batch_list
 ```
 
-Before we loop through our payees, let's add a couple libraries that will let us avoid hammering Groq and keep tabs on our progress.
+Before we loop through our payees, let's add a couple libraries that will let us avoid hammering Groq and keep tabs on our progress. In the terminal, do this:
 
-{emphasize-lines="1,4"}
+```bash
+pip install rich
+```
+
+{emphasize-lines="4"}
 ```python
+import os
 import time
 import json
-from rich import print
 from rich.progress import track
-from groq import Groq
 from retry import retry
+from groq import Groq
 import pandas as pd
 ```
 
-That batching trick can then be fit into a new function that will accept a big list of payees and classify them batch by batch.
+That batching trick can then be fit into a new function that will accept a big list of grantees and classify them batch by batch. Add this to the script just after the `get_batch_list` function:
 
 ```python
 def classify_batches(name_list, batch_size=10, wait=2):
@@ -384,7 +392,7 @@ def classify_batches(name_list, batch_size=10, wait=2):
     # Loop through the list in batches
     for batch in track(batch_list):
         # Classify it with the LLM
-        batch_results = classify_payees(batch)
+        batch_results = classify_grantees(batch)
 
         # Add what we get back to the results
         all_results.update(batch_results)
@@ -396,19 +404,19 @@ def classify_batches(name_list, batch_size=10, wait=2):
     return all_results
 ```
 
-Now, let's take out a bigger sample.
+Now, let's take out a bigger sample. Update the script to use a bigger sample.
 
 ```python
-bigger_sample = list(df.sample(100).payee)
+bigger_sample = list(df.sample(100).Grantee)
 ```
 
-And let it rip.
+And then replace the last line with this and run the script:
 
 ```python
-classify_batches(bigger_sample)
+print(classify_batches(bigger_sample))
 ```
 
-Printing out to the console is interesting, but eventually you'll want to be able to work with the results in a more structured way. So let's convert the results into a `pandas` DataFrame by modifying our function.
+Printing out to the console is interesting, but eventually you'll want to be able to work with the results in a more structured way. So let's convert the results into a `pandas` DataFrame by modifying our `classify_batches` function.
 
 {emphasize-lines="20-23"}
 ```python
@@ -422,7 +430,7 @@ def classify_batches(name_list, batch_size=10, wait=2):
     # Loop through the list in batches
     for batch in track(batch_list):
         # Classify it
-        batch_results = classify_payees(batch)
+        batch_results = classify_grantees(batch)
 
         # Add it to the results
         all_results.update(batch_results)
@@ -433,42 +441,36 @@ def classify_batches(name_list, batch_size=10, wait=2):
     # Return the results
     return pd.DataFrame(
         all_results.items(),
-        columns=["payee", "category"]
+        columns=["grantee", "category"]
     )
 ```
 
-Results can now be stored as a DataFrame.
+Results can now be stored as a DataFrame. Replace your last line with these:
 
 ```python
 results_df = classify_batches(bigger_sample)
-```
-
-And inspected using the standard `pandas` tools. Like a peek at the first records:
-
-```python
-results_df.head()
+print(results_df.head())
 ```
 
 ```
-payee	category
-0	CARROW'S RESTAURANT	Restaurant
-1	TUSCAN STEAK	Restaurant
-2	ORANGE POST OFFICE	Other
-3	RCC, INC.	Other
-4	THE MISSION INN HOTEL & SPA	Hotel
+                    grantee          category
+0                 MINH VINH             Other
+1     WALNUT HILL FARMS INC             Other
+2    THE BENEDICTINE SCHOOL  Higher Education
+3  THE UNIVERSITY OF KANSAS  Higher Education
+4            GARRETT CO CAC  Local Government
 ```
 
 Or a sum of all the categories.
 
 ```python
-results_df.category.value_counts()
+print(results_df.category.value_counts())
 ```
 
 ```
 category
-Other         65
-Restaurant    19
-Hotel         13
-Bar            3
+Other               81
+Higher Education    11
+Local Government     8
 Name: count, dtype: int64
 ```

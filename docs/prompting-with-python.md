@@ -2,36 +2,27 @@
 
 Now that you've got your Python environment set up, it's time to start writing prompts and sending them off to Groq.
 
-First, we'll install the libraries we need. The `groq` package is the official client for Groq's API. The `rich` and `ipywidgets` packages are helper libraries that will improve how your outputs look in Jupyter notebooks.
+First, we'll install the libraries we need. The `groq` package is the official client for Groq's API.
 
-A common way to install packages from inside your JupyterLab Desktop notebook is to use the `%pip` command.
+A common way to install packages from inside Codespaces is to use the `pip` command. Put the following command in the Terminal:
 
-```text
-%pip install groq rich ipywidgets
+```bash
+pip install groq
 ```
 
-Drop that into the first cell of a new notebook and hit the play button in the top toolbar.
+Remember storing your Groq API key as a GitHub secret? Good. You'll need it now. Let's create a Python script called classifier.py.
 
-:::{admonition} Note
-If the `%pip` command doesn't work on your computer, try substituting the `!pip` command instead. Or you can install the packages from the command line on your computer and restart your notebook.
-:::
+```bash
+touch classifier.py
+```
 
-Now lets import them in the cell that appears below the installation output. Hit play again.
+Open that file for editing, and at the top put our import statements and retrieve the API key and create a Groq client:
 
 ```python
-from rich import print
+import os
 from groq import Groq
-```
 
-Remember saving your Groq API key? Good. You'll need it now. Copy it from that text file and paste it inside the quotemarks as variable in a third cell. You should continue adding new cells as you need throughout the rest of the class.
-
-```python
-api_key = "Paste your key here"
-```
-
-Login to Groq and save the client for reuse when we call the API.
-
-```python
+api_key = os.environ.get('GROQ_API_KEY')
 client = Groq(api_key=api_key)
 ```
 
@@ -49,12 +40,14 @@ response = client.chat.completions.create(
     ],
     model="llama-3.3-70b-versatile",
 )
+
+print(response)
 ```
 
-Our client saves the response as a variable. Print that Python object to see what it contains.
+We'll save the response as a variable. Save the .py file, go to the terminal and run `python classifier.py` and print that Python object to see what it contains.
 
-```python
-print(response)
+```bash
+python classifer.py
 ```
 
 You should see something like:
@@ -95,19 +88,15 @@ data-driven storytelling.',
 )
 ```
 
-There's a lot here, but the `message` has the actual response from the LLM. Let's just print the content from that message. Note that your response probably varies from this guide. That's because LLMs mostly are probablistic prediction machines. Every response can be a little different.
+There's a lot here, but the `message` has the actual response from the LLM. Let's just print the content from that message. Note that your response probably varies from this guide. That's because LLMs mostly are probablistic prediction machines. Every response can be a little different. In the script, switch the last line to this and re-run the code.
 
 ```python
 print(response.choices[0].message.content)
 ```
 
-```text
-Data journalism plays a crucial role in holding those in power accountable by providing fact-based insights and
-analysis, enabling informed decision-making, and promoting transparency through the use of data-driven
-storytelling.
-```
+Is the response different this time?
 
-Let's pick a different model from among [the choices that Groq offers](https://console.groq.com/docs/models). One we could try is Gemma2, an open model from Google. Rather than add a new cell, lets revise the code we already have and rerun it.
+Let's pick a different model from among [the choices that Groq offers](https://console.groq.com/docs/models). One we could try is qwen 2.5, an open model from Alibaba. Lets revise the code we already have and rerun it.
 
 {emphasize-lines="8"}
 ```python
@@ -118,19 +107,18 @@ response = client.chat.completions.create(
             "content": "Explain the importance of data journalism in a concise sentence",
         }
     ],
-    model="gemma2-9b-it",
+    model="qwen-2.5-32b",
 )
 ```
 
 Again, your response might vary from what's here. Let's find out.
 
-```python
-print(response.choices[0].message.content)
+```bash
+python classifer.py
 ```
 
 ```text
-Data journalism illuminates complex issues, empowers informed decision-making, and drives accountability through
-the rigorous analysis and visualization of data.
+Data journalism is crucial as it uses data analysis to uncover insights and tell compelling stories based on factual evidence.
 ```
 
 :::{admonition} Sidenote
@@ -178,8 +166,8 @@ response = client.chat.completions.create(
 
 Check out the results.
 
-```python
-print(response.choices[0].message.content)
+```bash
+python classifer.py
 ```
 
 ```text
@@ -209,12 +197,10 @@ response = client.chat.completions.create(
 
 Then re-run the code and summon J. Jonah Jameson.
 
-```python
-print(response.choices[0].message.content)
+```bash
+python classifer.py
 ```
 
 ```text
-If I must: data journalism is supposedly important because it allows reporters to use numbers and statistics to
-uncover trends and patterns that might otherwise go unreported, but I still don't see the point of wasting good ink
-on a bunch of soulless spreadsheets.
+If you must know, data journalism is supposedly important because it allows reporters to uncover hidden trends and patterns in complex issues by analyzing large datasets, but I still don't see the point of wasting all that time and resources on spreadsheets when a good instinct and a sharp eye for a story can get the job done just fine.
 ```

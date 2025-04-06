@@ -24,4 +24,6 @@ A popup will appear with your key. Copy it to your clipboard. I've redacted my k
 
 ![Groq key](/_static/groq-copy.png)
 
-For now, paste that value into a text file on your computer. We'll need it later.
+Now, go to the Settings page of your GitHub repository and add your Groq API key as a new Secret in the Codespaces section under "Secrets and variables"
+
+![Groq codespaces](/_static/groq-codespaces.png)

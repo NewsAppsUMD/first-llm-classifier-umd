@@ -6,7 +6,7 @@ Yes, they're great at drumming up long blocks of text. An LLM can spit out a lon
 
 But they're also great at answering simple questions, a skill that has been overlooked in much of the hoopla that followed the introduction of ChatGPT.
 
-Here's a example that simply prompts the LLM to answer a straightforward question.
+Here's a example that simply prompts the LLM to answer a straightforward question. Replace the code in `classifier.py` below the Groq client with the following:
 
 ```python
 prompt = """
@@ -50,17 +50,18 @@ response = client.chat.completions.create(
     ],
     model="llama-3.3-70b-versatile",
 )
+print(response.choices[0].message.content)
 ```
 
 Check the response.
 
-```python
-print(response.choices[0].message.content)
+```bash
+python classifer.py
 ```
 
 And we'll bet you get the right answer.
 
-```
+```text
 Major League Baseball (MLB)
 ```
 
@@ -83,29 +84,29 @@ response = client.chat.completions.create(
 )
 ```
 
-```python
-print(response.choices[0].message.content)
+```bash
+python classifer.py
 ```
 
 See what we mean?
 
-```
+```text
 National Football League (NFL)
 ```
 
 This approach can be use to classify large datasets, adding a new column of data that categories text in a way that makes it easier to analyze.
 
-Let's try it by making a function that will classify whatever team you provide.
+Let's try it by making a function that will classify whatever team you provide. Replace the code in `classifier.py` with the following:
 
 ```python
 def classify_team(name):
     prompt = """
-You are an AI model trained to classify text.
+    You are an AI model trained to classify text.
 
-I will provide the name of a professional sports team.
+    I will provide the name of a professional sports team.
 
-You will reply with the sports league in which they compete.
-"""
+    You will reply with the sports league in which they compete.
+    """
 
     response = client.chat.completions.create(
         messages=[
@@ -124,19 +125,21 @@ You will reply with the sports league in which they compete.
     return response.choices[0].message.content
 ```
 
-A list of teams.
+At the bottom, put a list of teams.
 
 ```python
 team_list = ["Minnesota Twins", "Minnesota Vikings", "Minnesota Timberwolves"]
 ```
 
-Now, loop through the list and ask the LLM to code them one by one.
+And then code to loop through the list and ask the LLM to code them one by one.
 
 ```python
 for team in team_list:
     league = classify_team(team)
     print([team, league])
 ```
+
+Run `python classifier.py` and check the output:
 
 ```python
 ['Minnesota Twins', 'Major League Baseball (MLB)']
@@ -150,17 +153,17 @@ Due its probabilistic nature, the LLM can sometimes return slight variations on 
 ```python
 def classify_team(name):
     prompt = """
-You are an AI model trained to classify text.
+    You are an AI model trained to classify text.
 
-I will provide the name of a professional sports team.
+    I will provide the name of a professional sports team.
 
-You will reply with the sports league in which they compete.
+    You will reply with the sports league in which they compete.
 
-Your responses must come from the following list:
-- Major League Baseball (MLB)
-- National Football League (NFL)
-- National Basketball Association (NBA)
-"""
+    Your responses must come from the following list:
+    - Major League Baseball (MLB)
+    - National Football League (NFL)
+    - National Basketball Association (NBA)
+    """
 
     response = client.chat.completions.create(
         messages=[
@@ -189,11 +192,13 @@ Your responses must come from the following list:
     return answer
 ```
 
-Now, ask it for a team that's not in one of those leagues. You should get an error.
+Now, ask it for a team that's not in one of those leagues. You should get an error. Replace the team list and loop at the bottom with this:
 
 ```python
 classify_team("Minnesota Wild")
 ```
+
+And re-run `python classifier.py`
 
 ```python
 ---------------------------------------------------------------------------
@@ -216,25 +221,25 @@ ValueError: National Hockey League (NHL)
 However, since NHL is not in the provided list, I must inform you that the Minnesota Wild does not belong to any of the leagues mentioned (MLB, NFL, NBA). not in list of acceptable answers
 ```
 
-For cases when there isn't an accurate answer in your validation list, you can choose to allow an "other" category.
+For cases when there isn't an accurate answer in your validation list, you can choose to allow an "other" category. Replace the function with this:
 
 {emphasize-lines="14,37"}
 ```python
 def classify_team(name):
     prompt = """
-You are an AI model trained to classify text.
+    You are an AI model trained to classify text.
 
-I will provide the name of a professional sports team.
+    I will provide the name of a professional sports team.
 
-You will reply with the sports league in which they compete.
+    You will reply with the sports league in which they compete.
 
-Your responses must come from the following list:
-- Major League Baseball (MLB)
-- National Football League (NFL)
-- National Basketball Association (NBA)
+    Your responses must come from the following list:
+    - Major League Baseball (MLB)
+    - National Football League (NFL)
+    - National Basketball Association (NBA)
 
-If the team's league is not on the list, you should label them as "Other".
-"""
+    If the team's league is not on the list, you should label them as "Other".
+    """
 
     response = client.chat.completions.create(
         messages=[
@@ -262,13 +267,12 @@ If the team's league is not on the list, you should label them as "Other".
         raise ValueError(f"{answer} not in list of acceptable answers")
 
     return answer
+
+result = classify_team("Minnesota Wild")
+print(result)
 ```
 
-Now try the Minnesota Wild again.
-
-```python
-classify_team("Minnesota Wild")
-```
+Now try the Minnesota Wild again by running `python classifier.py` in the terminal.
 
 And you'll get the answer you expect.
 
@@ -282,19 +286,19 @@ Most LLMs are pre-programmed to be creative and generate a range of responses to
 ```python
 def classify_team(name):
     prompt = """
-You are an AI model trained to classify text.
+    You are an AI model trained to classify text.
 
-I will provide the name of a professional sports team.
+    I will provide the name of a professional sports team.
 
-You will reply with the sports league in which they compete.
+    You will reply with the sports league in which they compete.
 
-Your responses must come from the following list:
-- Major League Baseball (MLB)
-- National Football League (NFL)
-- National Basketball Association (NBA)
+    Your responses must come from the following list:
+    - Major League Baseball (MLB)
+    - National Football League (NFL)
+    - National Basketball Association (NBA)
 
-If the team's league is not on the list, you should label them as "Other".
-"""
+    If the team's league is not on the list, you should label them as "Other".
+    """
 
     response = client.chat.completions.create(
         messages=[
@@ -333,19 +337,19 @@ Here's how it's done:
 ```python
 def classify_team(name):
     prompt = """
-You are an AI model trained to classify text.
+    You are an AI model trained to classify text.
 
-I will provide the name of a professional sports team.
+    I will provide the name of a professional sports team.
 
-You will reply with the sports league in which they compete.
+    You will reply with the sports league in which they compete.
 
-Your responses must come from the following list:
-- Major League Baseball (MLB)
-- National Football League (NFL)
-- National Basketball Association (NBA)
+    Your responses must come from the following list:
+    - Major League Baseball (MLB)
+    - National Football League (NFL)
+    - National Basketball Association (NBA)
 
-If the team's league is not on the list, you should label them as "Other".
-"""
+    If the team's league is not on the list, you should label them as "Other".
+    """
 
     response = client.chat.completions.create(
         messages=[
@@ -410,18 +414,16 @@ If the team's league is not on the list, you should label them as "Other".
 
 You can also ask the function to automatically retry if it doesn't get a valid response. This will give the LLM a second chance to get it right in cases where it gets too creative.
 
-To do that, we'll return installation step and in the `retry` package.
+To do that, we'll return to the terminal and install the `retry` package.
 
-```text
-%pip install groq rich ipywidgets retry
+```bash
+pip install retry
 ```
 
-Now import the `retry` package.
+Now import the `retry` package at the top of our classifier script.
 
 {emphasize-lines="3"}
 ```python
-from rich import print
-from groq import Groq
 from retry import retry
 ```
 
@@ -432,6 +434,18 @@ And add the `retry` decorator to the function that will catch the `ValueError` e
 @retry(ValueError, tries=2, delay=2)
 def classify_team(name):
     prompt = """
-You are an AI model trained to classify text.
-...
+    You are an AI model trained to classify text.
+    ...
 ```
+
+At the bottom, add back the list of teams and the loop
+
+```python
+team_list = ["Minnesota Twins", "Minnesota Vikings", "Minnesota Timberwolves", "Minnesota Wild"]
+
+for team in team_list:
+    league = classify_team(team)
+    print([team, league])
+```
+
+And re-run the script.
