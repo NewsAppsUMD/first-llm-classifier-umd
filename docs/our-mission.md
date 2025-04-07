@@ -12,18 +12,10 @@ Large-language models offer a better deal. We will demonstrate how you can use t
 
 ## Our example case
 
-To show the power of this approach, we’ll focus on a specific data set: campaign expenditures.
+To show the power of this approach, we’ll focus on a specific data set: Maryland state grants.
 
-Candidates for office must disclose the money they spend on everything from pizza to private jets. Tracking their spending can reveal patterns and lead to important stories.
+State agencies provide millions of dollars each year to governments, non-profit organizations and other institutions. Tracking that spending can reveal patterns and lead to important stories.
 
-But it’s no easy task. Each election cycle, thousands of candidates log transactions into the public databases where spending is disclosed. That’s so much data that no one can examine it all. To make matters worse, campaigns often use vague or misleading descriptions of their spending, making it difficult to parse and understand.
+But it’s no easy task. The names of grantees are not standardized and neither are the descriptions of the purpose of the spending.
 
-It wasn’t until after his 2022 election to Congress that [journalists discovered](https://www.nytimes.com/2022/12/29/nyregion/george-santos-campaign-finance.html) that Rep. George Santos of New York had spent thousands of campaign dollars on questionable and potentially illegal expenses. While much of his shady spending was publicly disclosed, it was largely overlooked in the run-up to election day.
-
-[![Santos story](_static/santos.png)](https://www.nytimes.com/2022/12/29/nyregion/george-santos-campaign-finance.html)
-
-Inspired by this scoop, we will create a classifier that can scan the expenditures logged in campaign finance reports and identify those that may be newsworthy.
-
-[![CCDC](_static/ccdc.png)](https://californiacivicdata.org/)
-
-We will draw data from The Golden State, where the California Civic Data Coalition developed a clean, structured version of the statehouse's disclosure data.
+We will create a classifier that can scan the grants and categorize them.
