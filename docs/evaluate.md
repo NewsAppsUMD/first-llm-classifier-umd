@@ -22,18 +22,18 @@ You can open the file in a spreadsheet program like Excel or Google Sheets. For 
 
 ![Sample](_static/sample.png)
 
-To speed the class along, we've already prepared a sample for you in [the class repository](https://github.com/palewire/first-llm-classifier). Our next step is to read it back into a DataFrame.
+To speed the class along, we've already prepared a sample for you in [the class repository](https://github.com/NewsAppsUMD/first-llm-classifier). Our next step is to read it back into a DataFrame.
 
 ```python
-sample_df = pd.read_csv("https://raw.githubusercontent.com/palewire/first-llm-classifier/refs/heads/main/_notebooks/sample.csv")
+sample_df = pd.read_csv("https://raw.githubusercontent.com/NewsAppsUMD/first-llm-classifier-umd/refs/heads/main/sample.csv")
 ```
 
 We'll install the Python packages `scikit-learn`, `matplotlib`, and `seaborn`. Prior to LLMs, these libraries were the go-to tools for training and evaluating machine-learning models. We'll primarily be using them for testing.
 
-Return to the Jupyter notebook and install the packages alongside our other dependencies.
+Return to the terminal and install the packages alongside our other dependencies.
 
 ```
-%pip install groq rich ipywidgets retry pandas scikit-learn matplotlib seaborn
+pip install scikit-learn matplotlib seaborn
 ```
 
 Add the `test_train_split` function from `scikit-learn` to the import statement.
@@ -41,7 +41,6 @@ Add the `test_train_split` function from `scikit-learn` to the import statement.
 {emphasize-lines="6"}
 ```python
 import json
-from rich import print
 from groq import Groq
 from retry import retry
 import pandas as pd
@@ -56,7 +55,7 @@ The `test_size` parameter determines the proportion of the sample that will be u
 
 ```python
 training_input, test_input, training_output, test_output = train_test_split(
-    sample_df[['payee']],
+    sample_df[['Grantee']],
     sample_df['category'],
     test_size=0.33,
     random_state=42, # Remember Jackie Robinson. Remember Douglas Adams.
@@ -67,10 +66,10 @@ In a traditional training setup, the next step would be to train a machine-learn
 
 With the LLM we skip ahead to the testing phase. We pass the `test_input` set to our LLM prompt and compare the results to the right answers found in `test_output` set.
 
-All that requires is that we pass the `payee` column from our `test_input` DataFrame to the function we created in the previous chapters.
+All that requires is that we pass the `Grantee` column from our `test_input` DataFrame to the function we created in the previous chapters.
 
 ```python
-llm_df = classify_batches(list(test_input.payee))
+llm_df = classify_batches(list(test_input.Grantee))
 ```
 
 Next, we import the `classification_report` and `confusion_matrix` functions from `sklearn`, which are used to evaluate a model's performance. We'll also pull in `seaborn` and `matplotlib` to visualize the results.
@@ -78,7 +77,6 @@ Next, we import the `classification_report` and `confusion_matrix` functions fro
 {emphasize-lines="6-7,9"}
 ```python
 import json
-from rich import print
 from groq import Groq
 from retry import retry
 import pandas as pd
