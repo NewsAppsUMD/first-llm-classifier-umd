@@ -22,7 +22,13 @@ You can open the file in a spreadsheet program like Excel or Google Sheets. For 
 
 ![Sample](_static/sample.png)
 
-To speed the class along, we've already prepared a sample for you in [the class repository](https://github.com/NewsAppsUMD/first-llm-classifier). Our next step is to read it back into a DataFrame.
+To speed the class along, we've already prepared a sample for you in [the class repository](https://github.com/NewsAppsUMD/first-llm-classifier). Our next step is to read it back into a DataFrame. Let's create a new file called `eval.py` for this work:
+
+```bash
+touch eval.py
+```
+
+And copy the first 8 lines from your `classifier_umd.py` file, then add this:
 
 ```python
 sample_df = pd.read_csv("https://raw.githubusercontent.com/NewsAppsUMD/first-llm-classifier-umd/refs/heads/main/sample.csv")
@@ -40,6 +46,7 @@ Add the `test_train_split` function from `scikit-learn` to the import statement.
 
 {emphasize-lines="6"}
 ```python
+import os
 import json
 from groq import Groq
 from retry import retry
@@ -66,7 +73,13 @@ In a traditional training setup, the next step would be to train a machine-learn
 
 With the LLM we skip ahead to the testing phase. We pass the `test_input` set to our LLM prompt and compare the results to the right answers found in `test_output` set.
 
-All that requires is that we pass the `Grantee` column from our `test_input` DataFrame to the function we created in the previous chapters.
+All that requires is that we pass the `Grantee` column from our `test_input` DataFrame to the function we created in the previous chapters. We'll need to import that function:
+
+```python
+from classifier_umd import classify_batches
+```
+
+And then add this to the bottom of our new script:
 
 ```python
 llm_df = classify_batches(list(test_input.Grantee))
@@ -74,8 +87,9 @@ llm_df = classify_batches(list(test_input.Grantee))
 
 Next, we import the `classification_report` and `confusion_matrix` functions from `sklearn`, which are used to evaluate a model's performance. We'll also pull in `seaborn` and `matplotlib` to visualize the results.
 
-{emphasize-lines="6-7,9"}
+{emphasize-lines="6-7,10"}
 ```python
+import os
 import json
 from groq import Groq
 from retry import retry
@@ -83,6 +97,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
+from classifier_umd import classify_batches
 from sklearn.metrics import confusion_matrix, classification_report
 ```
 
@@ -95,23 +110,23 @@ print(classification_report(test_output, llm_df.category))
 That will output a report that looks something like this:
 
 ```
-              precision    recall  f1-score   support
+                  precision    recall  f1-score   support
 
-         Bar       1.00      1.00      1.00         2
-       Hotel       0.89      0.80      0.84        10
-       Other       0.96      0.96      0.96        57
-  Restaurant       0.87      0.93      0.90        14
+Higher Education       0.75      1.00      0.86         3
+Local Government       0.82      1.00      0.90         9
+          Museum       1.00      1.00      1.00         2
+           Other       1.00      0.96      0.98        69
 
-    accuracy                           0.94        83
-   macro avg       0.93      0.92      0.93        83
-weighted avg       0.94      0.94      0.94        83
+        accuracy                           0.96        83
+       macro avg       0.89      0.99      0.93        83
+    weighted avg       0.97      0.96      0.97        83
 ```
 
 At first, the report can be a bit overwhelming. What are all these technical terms?
 
-Precision measures what statistics nerds call "positive predictive value." It's how often the model made the correct decision when it applied a category. For instance, in the "Bar" category, the LLM correctly predicted both of the bars in our supervised sample. That's a precision of 1.00. An analogy here is a baseball player's contact rate. Precision is a measure of how often the model connects with the ball when it swings its bat.
+Precision measures what statistics nerds call "positive predictive value." It's how often the model made the correct decision when it applied a category. For instance, in the "Museum" category, the LLM correctly predicted both of the museums in our supervised sample. That's a precision of 1.00. An analogy here is a baseball player's contact rate. Precision is a measure of how often the model connects with the ball when it swings its bat.
 
-Recall measures how many of the supervised instances were identified by the model. In this case, it shows that the LLM correctly spotted 80% of the hotels in our manual sample.
+Recall measures how many of the supervised instances were identified by the model. In this case, it shows that the LLM correctly spotted 100% of the local government agencies in our manual sample.
 
 The f1-score is a combination of precision and recall. It's a way to measure a model's overall performance by balancing the two.
 
@@ -121,33 +136,6 @@ The averages at the bottom combine the results for all categories. The macro row
 
 In the example result provided above, we can see that the LLM was guessing correctly more than 90% of the time no matter how you slice it.
 
-Another technique for evaluating classifiers is to visualize the results using a chart known as a confusion matrix. This chart shows how often the model correctly predicted each category and where it got things wrong.
-
-Drawing one up requires the `confusion_matrix` function from `sklearn` and an embarassing tangle of code from `seaborn` and `matplotlib` libraries. Most of it is boilerplate, but you need to punch your test variables, as well as the proper labels for the categories, in a few picky places.
-
-{emphasize-lines="2-4,11-12"}
-```python
-conf_mat = confusion_matrix(
-    test_output,
-    llm_df.category,
-    labels=llm_df.category.unique()
-)
-fig, ax = plt.subplots(figsize=(5,5))
-sns.heatmap(
-    conf_mat,
-    annot=True,
-    fmt='d',
-    xticklabels=llm_df.category.unique(),
-    yticklabels=llm_df.category.unique()
-)
-plt.ylabel('Actual')
-plt.xlabel('Predicted')
-```
-
-![confusion matrix](_static/matrix-llm.png)
-
-The diagonal line of cells running from the upper left to the lower right shows where the model correctly predicted the category. The off-diagonal cells show where it got things wrong. The color of the cells indicates how often the model made that prediction. For instance, we can see that one miscategorized hotel in the sample was predicted to be a restaurant and the second was predicted to be "Other."
-
 Due to the inherent randomness in the LLM's predictions, it's a good idea to test your sample and run these reports multiple times to get a sense of the model's performance. 
 
 Before we look at how you might improve the LLM's performance, let's take a moment to compare the results of this evaluation against the old school approach where the supervised sample is used to train a machine-learning model that doesn't have access to the ocean of knowledge poured into an LLM.
@@ -155,8 +143,9 @@ Before we look at how you might improve the LLM's performance, let's take a mome
 This will require importing a mess of `sklearn` functions and classes. We'll use `TfidfVectorizer` to convert the payee text into a numerical representation that can be used by a `LinearSVC` classifier. We'll then use a `Pipeline` to chain the two together. If you have no idea what any of that means, don't worry. Now that we have LLMs in this world, you might never need to know.
 
 
-{emphasize-lines="10-13"}
+{emphasize-lines="12-15"}
 ```python
+import os
 import json
 from rich import print
 from groq import Groq
@@ -166,6 +155,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report
+from classifier_umd import classify_batches
 from sklearn.svm import LinearSVC
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
@@ -186,7 +176,7 @@ vectorizer = TfidfVectorizer(
 )
 preprocessor = ColumnTransformer(
     transformers=[
-        ('payee', vectorizer, 'payee')
+        ('Grantee', vectorizer, 'Grantee')
     ],
     sparse_threshold=0,
     remainder='drop'
@@ -216,32 +206,16 @@ print(classification_report(test_output, predictions))
 ```
 
 ```
-              precision    recall  f1-score   support
+                  precision    recall  f1-score   support
 
-         Bar       0.00      0.00      0.00         2
-       Hotel       1.00      0.27      0.43        10
-       Other       0.75      1.00      0.85        57
-  Restaurant       0.80      0.29      0.42        14
+Higher Education       0.00      0.00      0.00         3
+Local Government       0.71      0.56      0.62         9
+          Museum       0.00      0.00      0.00         2
+           Other       0.88      0.97      0.92        69
 
-    accuracy                           0.76        83
-   macro avg       0.64      0.39      0.43        83
-weighted avg       0.77      0.76      0.70        83
+        accuracy                           0.87        83
+       macro avg       0.40      0.38      0.39        83
+    weighted avg       0.81      0.87      0.84        83
 ```
 
-```python
-conf_mat = confusion_matrix(test_output, llm_df.category, labels=llm_df.category.unique())
-fig, ax = plt.subplots(figsize=(5,5))
-sns.heatmap(
-    conf_mat,
-    annot=True,
-    fmt='d',
-    xticklabels=llm_df.category.unique(),
-    yticklabels=llm_df.category.unique()
-)
-plt.ylabel('Actual')
-plt.xlabel('Predicted')
-```
-
-![confusion matrix](_static/matrix-ml.png)
-
-Not great. The traditional model is guessing correctly about 75% of the time, but it's missing most cases of our "Bar", "Hotel" and "Restaurant" categories as almost everything is getting filed as "Other." The LLM, on the other hand, is guessing correctly more than 90% of the time and flagging many of the rare categories that we're seeking to find in the haystack of data.
+Not great. The traditional model is guessing correctly about 87% of the time, but it's missing most cases of our "Higher Education", "Museum" and "Local Government" categories as almost everything is getting filed as "Other." The LLM, on the other hand, is guessing correctly more than 90% of the time and flagging many of the rare categories that we're seeking to find in the haystack of data.
