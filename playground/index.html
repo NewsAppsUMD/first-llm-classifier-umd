@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Classifier Playground</title>
+<style>
+  :root { --bg:#fff; --fg:#1b1b1b; --muted:#666; --line:#ddd; --accent:#b3202a; --card:#f6f6f6; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#161616; --fg:#eee; --muted:#9a9a9a; --line:#333; --accent:#ff6b6b; --card:#222; } }
+  body { font:16px/1.5 system-ui,sans-serif; background:var(--bg); color:var(--fg); max-width:60rem; margin:0 auto; padding:1rem; }
+  h1 { margin-bottom:.2rem } h2 { margin-top:2rem; border-bottom:1px solid var(--line); padding-bottom:.2rem }
+  label { display:block; margin:.6rem 0 .2rem; font-weight:600 }
+  input, select, textarea, button { font:inherit; color:inherit; background:var(--card); border:1px solid var(--line); border-radius:4px; padding:.4rem .6rem; }
+  textarea { width:100%; box-sizing:border-box; font-family:ui-monospace,monospace; font-size:.9rem }
+  input[type=text], input[type=password], input[type=number] { width:100%; box-sizing:border-box }
+  .row { display:grid; grid-template-columns:repeat(auto-fit,minmax(14rem,1fr)); gap:1rem }
+  button { cursor:pointer } button.primary { background:var(--accent); color:#fff; border-color:var(--accent) }
+  button:disabled { opacity:.5; cursor:default }
+  .note { color:var(--muted); font-size:.9rem }
+  table { border-collapse:collapse; width:100%; font-size:.9rem; margin:.5rem 0 }
+  th, td { border:1px solid var(--line); padding:.25rem .5rem; text-align:left }
+  td.num, th.num { text-align:right }
+  tr.wrong td { background:rgba(255,80,80,.18) }
+  #log { white-space:pre-wrap; font-family:ui-monospace,monospace; font-size:.85rem; color:var(--muted) }
+  .scroll { max-height:24rem; overflow:auto }
+</style>
+</head>
+<body>
+<h1>LLM Classifier Playground</h1>
+<p class="note">A browser version of the <a href="../">First LLM Classifier</a> class. Everything runs on this page. Your API key is sent only to the provider you choose, and is never stored unless you check the box.</p>
+
+<h2>1. Connect</h2>
+<div class="row">
+  <div><label for="provider">Provider</label>
+    <select id="provider"><option value="anthropic">Anthropic</option><option value="openai">OpenAI</option></select></div>
+  <div><label for="model">Model</label><input type="text" id="model"></div>
+  <div><label for="key">API key</label><input type="password" id="key" autocomplete="off"></div>
+</div>
+<label><input type="checkbox" id="remember"> Remember this key in this browser</label>
+
+<h2>2. Data</h2>
+<div class="row">
+  <div><label for="file">CSV file</label><input type="file" id="file" accept=".csv"></div>
+  <div><label>&nbsp;</label><button id="loadSample">Load sample.csv (250 Maryland grantees)</button></div>
+</div>
+<div class="row">
+  <div><label for="textcol">Column to classify</label><select id="textcol"></select></div>
+  <div><label for="truthcol">Hand-labeled column (optional, for evaluation)</label><select id="truthcol"></select></div>
+  <div><label for="limit">Rows to run</label><input type="number" id="limit" min="1" value="40"></div>
+</div>
+<p class="note" id="dataInfo">No data loaded.</p>
+
+<h2>3. Prompt</h2>
+<label for="categories">Categories (one per line)</label>
+<textarea id="categories" rows="5">Local Government
+Higher Education
+Museum
+Other</textarea>
+<label for="prompt">System prompt</label>
+<textarea id="prompt" rows="12"></textarea>
+<p class="note">The categories above and a JSON-list instruction are added after this text automatically. Batch size: <input type="number" id="batch" min="1" max="50" value="20" style="width:5rem"></p>
+
+<p><button class="primary" id="run" disabled>Classify</button> <button id="stop" disabled>Stop</button> <button id="download" disabled>Download CSV</button></p>
+<div id="log"></div>
+
+<h2>Results</h2>
+<div id="report"></div>
+<div class="scroll"><table id="results"></table></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const DEFAULT_MODELS = { anthropic: "claude-haiku-5-5", openai: "gpt-4o-mini" };
+$("prompt").value = `You are an AI model trained to categorize organizations based on their names.
+
+I will provide a list of organization names separated by new lines.
+
+You will reply with the category that best describes each one.
+
+If an organization does not fit any category on the list, label it "Other".`;
+
+let rows = [], results = [], stopFlag = false;
+
+// ---------- storage (best effort) ----------
+const store = {
+  get(k) { try { return localStorage.getItem(k) } catch { return null } },
+  set(k, v) { try { localStorage.setItem(k, v) } catch {} },
+  del(k) { try { localStorage.removeItem(k) } catch {} },
+};
+function setProvider() {
+  const p = $("provider").value;
+  $("model").value = store.get("model_" + p) || DEFAULT_MODELS[p];
+  $("key").value = store.get("key_" + p) || "";
+  $("remember").checked = !!store.get("key_" + p);
+}
+$("provider").onchange = setProvider; setProvider();
+
+// ---------- CSV ----------
+function parseCSV(text) {
+  const out = []; let row = [], cur = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"' && text[i+1] === '"') { cur += '"'; i++ }
+      else if (c === '"') q = false;
+      else cur += c;
+    } else if (c === '"') q = true;
+    else if (c === ",") { row.push(cur); cur = "" }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i+1] === "\n") i++;
+      row.push(cur); cur = ""; out.push(row); row = [];
+    } else cur += c;
+  }
+  if (cur || row.length) { row.push(cur); out.push(row) }
+  const clean = out.filter(r => r.some(x => x !== ""));
+  const header = clean.shift() || [];
+  return { header, rows: clean.map(r => Object.fromEntries(header.map((h, i) => [h, r[i] ?? ""]))) };
+}
+const csvCell = v => /[",\n]/.test(v) ? '"' + String(v).replace(/"/g, '""') + '"' : String(v);
+
+function loadData(text, name) {
+  const { header, rows: r } = parseCSV(text);
+  rows = r; results = [];
+  for (const id of ["textcol", "truthcol"]) {
+    $(id).innerHTML = (id === "truthcol" ? '<option value="">(none)</option>' : "") +
+      header.map(h => `<option>${h.replace(/</g, "&lt;")}</option>`).join("");
+  }
+  $("textcol").value = header[0];
+  $("truthcol").value = header.includes("category") ? "category" : "";
+  $("dataInfo").textContent = `${name}: ${rows.length} rows, columns: ${header.join(", ")}`;
+  $("run").disabled = !rows.length;
+  $("results").innerHTML = ""; $("report").innerHTML = ""; $("download").disabled = true;
+}
+$("file").onchange = async e => { const f = e.target.files[0]; if (f) loadData(await f.text(), f.name) };
+$("loadSample").onclick = async () => {
+  try { const r = await fetch("sample.csv"); if (!r.ok) throw new Error(r.status); loadData(await r.text(), "sample.csv") }
+  catch (err) { $("dataInfo").textContent = "Could not load sample.csv (" + err.message + "). If you opened this page as a file, serve it over http instead." }
+};
+
+// ---------- LLM calls ----------
+async function callLLM(system, user) {
+  const provider = $("provider").value, key = $("key").value.trim(), model = $("model").value.trim();
+  let res, data;
+  if (provider === "anthropic") {
+    res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01",
+                 "anthropic-dangerous-direct-browser-access": "true" },
+      body: JSON.stringify({ model, max_tokens: 2048, temperature: 0, system, messages: [{ role: "user", content: user }] }),
+    });
+    data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || res.statusText);
+    return data.content.map(b => b.text || "").join("");
+  }
+  res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: "Bearer " + key },
+    body: JSON.stringify({ model, messages: [{ role: "system", content: system }, { role: "user", content: user }] }),
+  });
+  data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || res.statusText);
+  return data.choices[0].message.content;
+}
+
+function buildSystem(cats) {
+  return `${$("prompt").value.trim()}
+
+Your responses must come from the following list:
+${cats.map(c => "- " + c).join("\n")}
+
+Return your answers as a flat JSON list of strings, with nothing else before or after it.
+
+It is very important that the list you return has exactly the same number of items as the number of names you receive, in the same order.
+
+If I were to submit:
+
+"Name A\\nName B"
+
+You should return something like:
+
+["${cats[0]}", "${cats[cats.length - 1]}"]`;
+}
+
+async function classifyBatch(names, cats, tries = 2) {
+  const system = buildSystem(cats);
+  let lastErr;
+  for (let t = 0; t < tries; t++) {
+    try {
+      const text = await callLLM(system, names.join("\n"));
+      const m = text.match(/\[[\s\S]*\]/);
+      if (!m) throw new Error("no JSON list in response");
+      const list = JSON.parse(m[0]);
+      if (list.length !== names.length) throw new Error(`got ${list.length} answers for ${names.length} names`);
+      const bad = list.find(a => !cats.includes(a));
+      if (bad !== undefined) throw new Error(`"${bad}" is not an acceptable category`);
+      return list;
+    } catch (err) {
+      lastErr = err;
+      if (/api|key|auth|quota|rate|model/i.test(err.message) && !/JSON|answers|acceptable/.test(err.message)) throw err;
+      log(`  retrying batch: ${err.message}`);
+    }
+  }
+  throw lastErr;
+}
+
+const log = s => { $("log").textContent += s + "\n" };
+
+// ---------- run ----------
+$("run").onclick = async () => {
+  const cats = $("categories").value.split("\n").map(s => s.trim()).filter(Boolean);
+  if (cats.length < 2) return alert("Add at least two categories.");
+  if (!$("key").value.trim()) return alert("Paste an API key first.");
+  const p = $("provider").value;
+  store.set("model_" + p, $("model").value);
+  $("remember").checked ? store.set("key_" + p, $("key").value) : store.del("key_" + p);
+
+  const col = $("textcol").value, size = +$("batch").value || 20;
+  const subset = rows.slice(0, Math.max(1, +$("limit").value || rows.length));
+  results = []; stopFlag = false; $("log").textContent = "";
+  $("run").disabled = true; $("stop").disabled = false; $("download").disabled = true;
+
+  try {
+    for (let i = 0; i < subset.length && !stopFlag; i += size) {
+      const chunk = subset.slice(i, i + size);
+      log(`Rows ${i + 1}-${i + chunk.length} of ${subset.length}...`);
+      const labels = await classifyBatch(chunk.map(r => r[col].replace(/\s+/g, " ").trim()), cats);
+      chunk.forEach((r, j) => results.push({ ...r, llm_category: labels[j] }));
+      render();
+    }
+    log(stopFlag ? "Stopped." : "Done.");
+  } catch (err) {
+    log("Error: " + err.message);
+  }
+  $("run").disabled = false; $("stop").disabled = true; $("download").disabled = !results.length;
+};
+$("stop").onclick = () => { stopFlag = true };
+
+// ---------- results + evaluation ----------
+function render() {
+  const col = $("textcol").value, truth = $("truthcol").value;
+  const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  $("results").innerHTML =
+    `<tr><th>${esc(col)}</th>${truth ? "<th>Hand label</th>" : ""}<th>LLM label</th></tr>` +
+    results.map(r => `<tr class="${truth && r[truth] !== r.llm_category ? "wrong" : ""}"><td>${esc(r[col])}</td>` +
+      `${truth ? `<td>${esc(r[truth])}</td>` : ""}<td>${esc(r.llm_category)}</td></tr>`).join("");
+  $("report").innerHTML = truth ? evaluate(results.map(r => r[truth]), results.map(r => r.llm_category)) : "";
+}
+
+function evaluate(truth, pred) {
+  const labels = [...new Set([...truth, ...pred])].sort();
+  const n = truth.length;
+  const cm = Object.fromEntries(labels.map(a => [a, Object.fromEntries(labels.map(b => [b, 0]))]));
+  truth.forEach((t, i) => cm[t][pred[i]]++);
+  const acc = truth.filter((t, i) => t === pred[i]).length / n;
+  const f = x => x.toFixed(2);
+  let html = `<p><strong>Accuracy: ${(acc * 100).toFixed(1)}%</strong> on ${n} rows. Red rows below are misses.</p>
+    <table><tr><th>Category</th><th class="num">Precision</th><th class="num">Recall</th><th class="num">F1</th><th class="num">Support</th></tr>`;
+  for (const l of labels) {
+    const tp = cm[l][l];
+    const predN = labels.reduce((s, t) => s + cm[t][l], 0), supp = labels.reduce((s, p) => s + cm[l][p], 0);
+    const pr = predN ? tp / predN : 0, rc = supp ? tp / supp : 0, f1 = pr + rc ? 2 * pr * rc / (pr + rc) : 0;
+    html += `<tr><td>${l}</td><td class="num">${f(pr)}</td><td class="num">${f(rc)}</td><td class="num">${f(f1)}</td><td class="num">${supp}</td></tr>`;
+  }
+  html += `</table><p class="note">Confusion matrix (rows = hand label, columns = LLM)</p><table><tr><th></th>${labels.map(l => `<th class="num">${l}</th>`).join("")}</tr>`;
+  for (const a of labels) html += `<tr><th>${a}</th>${labels.map(b => `<td class="num">${cm[a][b]}</td>`).join("")}</tr>`;
+  return html + "</table>";
+}
+
+$("download").onclick = () => {
+  const cols = Object.keys(results[0]);
+  const csv = [cols.map(csvCell).join(","), ...results.map(r => cols.map(c => csvCell(r[c])).join(","))].join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.download = "classified.csv"; a.click();
+};
+</script>
+</body>
+</html>

@@ -28,7 +28,9 @@ client = Groq(api_key=api_key)
 
 Let's make our first prompt. To do that, we submit a dictionary to Groq's `chat.completions.create` method. The dictionary has a `messages` key that contains a list of dictionaries. Each dictionary in the list represents a message in the conversation. When the `role` is "user" it is roughly the same as asking a question to a chatbot.
 
-We also need to pick a model from [among the choices Groq gives us](https://console.groq.com/docs/models). We're picking Llama 3.3, the latest from Meta.
+We also need to pick a model from [among the choices Groq gives us](https://console.groq.com/docs/models). We're picking Qwen 3.8, an open model from Alibaba.
+
+Qwen is a "reasoning" model, which means it can think through a problem step-by-step before it answers. That's handy for hard questions, but it's slower and it mixes the model's internal monologue into the response. For the simple tasks in this class we'll turn it off by setting `reasoning_effort` to `"none"`.
 
 ```python
 response = client.chat.completions.create(
@@ -38,7 +40,8 @@ response = client.chat.completions.create(
             "content": "Explain the importance of data journalism in a concise sentence",
         }
     ],
-    model="llama-3.3-70b-versatile",
+    model="qwen/qwen3.8-27b",
+    reasoning_effort="none",
 )
 
 print(response)
@@ -72,7 +75,7 @@ data-driven storytelling.',
         )
     ],
     created=1740671812,
-    model='llama-3.3-70b-versatile',
+    model='qwen/qwen3.8-27b',
     object='chat.completion',
     system_fingerprint='fp_76dc6cf67d',
     usage=CompletionUsage(
@@ -96,7 +99,7 @@ print(response.choices[0].message.content)
 
 Is the response different this time?
 
-Let's pick a different model from among [the choices that Groq offers](https://console.groq.com/docs/models). One we could try is qwen 2.5, an open model from Alibaba. Lets revise the code we already have and rerun it.
+Let's pick a different model from among [the choices that Groq offers](https://console.groq.com/docs/models). One we could try is Llama 3.3, an open model from Meta. Llama isn't a reasoning model, so we can drop the `reasoning_effort` setting. Let's revise the code we already have and rerun it.
 
 {emphasize-lines="8"}
 ```python
@@ -107,7 +110,7 @@ response = client.chat.completions.create(
             "content": "Explain the importance of data journalism in a concise sentence",
         }
     ],
-    model="qwen-2.5-32b",
+    model="llama-3.3-70b-versatile",
 )
 ```
 
@@ -145,9 +148,9 @@ print(response.content[0].text)
 
 A well-structured prompt helps the LLM provide more accurate and useful responses.
 
-One common technique for improving results is to open with a "system" prompt to establish the model's tone and role. Let's switch back to Llama 3.3 and provide a `system` message that provides a specific motivation for the LLM's responses.
+One common technique for improving results is to open with a "system" prompt to establish the model's tone and role. Let's switch back to Qwen 3.8 and provide a `system` message that provides a specific motivation for the LLM's responses.
 
-{emphasize-lines="3-6,12"}
+{emphasize-lines="3-6,12-13"}
 ```python
 response = client.chat.completions.create(
     messages=[
@@ -160,7 +163,8 @@ response = client.chat.completions.create(
             "content": "Explain the importance of data journalism in a concise sentence",
         }
     ],
-    model="llama-3.3-70b-versatile",
+    model="qwen/qwen3.8-27b",
+    reasoning_effort="none",
 )
 ```
 
@@ -191,7 +195,8 @@ response = client.chat.completions.create(
             "content": "Explain the importance of data journalism in a concise sentence",
         }
     ],
-    model="llama-3.3-70b-versatile",
+    model="qwen/qwen3.8-27b",
+    reasoning_effort="none",
 )
 ```
 

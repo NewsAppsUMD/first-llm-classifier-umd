@@ -29,7 +29,7 @@ Next, we make a series of changes to our function to adapt it to work with a bat
 * We check that the LLM's answers are in our list of acceptable answers with a loop through the list.
 * We merge the team names and the LLM's answers into a dictionary returned by the function.
 
-{emphasize-lines="2,17-27,36-43,46,53-54,62-66"}
+{emphasize-lines="2,17-27,36-43,46,54-55,63-67"}
 ```python
 @retry(ValueError, tries=2, delay=2)
 def classify_teams(name_list):
@@ -79,7 +79,8 @@ def classify_teams(name_list):
                 "content": "\n".join(name_list),
             }
         ],
-        model="llama-3.3-70b-versatile",
+        model="qwen/qwen3.8-27b",
+        reasoning_effort="none",
         temperature=0,
     )
 
@@ -116,7 +117,7 @@ And re-run the classifier. You'll see that it works with only a single API call.
 
 Though, as you batches get bigger, one common problem is that the number of outputs from the LLM can fail to match the number of inputs you provide. This problem may lessen as LLMs improve, but for now it's a good idea to limit to batches to a few dozen inputs and to verify that you're getting the right number back.
 
-{emphasize-lines="66-69"}
+{emphasize-lines="67-70"}
 ```python
 @retry(ValueError, tries=2, delay=2)
 def classify_teams(name_list):
@@ -166,7 +167,8 @@ def classify_teams(name_list):
                 "content": "\n".join(name_list),
             }
         ],
-        model="llama-3.3-70b-versatile",
+        model="qwen/qwen3.8-27b",
+        reasoning_effort="none",
         temperature=0,
     )
 
@@ -250,7 +252,7 @@ df.sample(10)
 
 Now let's adapt what we have to fit. Instead of asking for a sports league back, we will ask the LLM to classify each payee as a higher education institution, a museum, local government agency or other establishment. Add this function to your new classifier script.
 
-{emphasize-lines="2-26,33-48,61-66"}
+{emphasize-lines="2-26,33-48,62-67"}
 ```python
 @retry(ValueError, tries=2, delay=2)
 def classify_grantees(name_list):
@@ -305,7 +307,8 @@ def classify_grantees(name_list):
                 "content": "\n".join(name_list),
             }
         ],
-        model="llama-3.3-70b-versatile",
+        model="qwen/qwen3.8-27b",
+        reasoning_effort="none",
         temperature=0,
     )
 

@@ -29,7 +29,8 @@ response = client.chat.completions.create(
             "content": prompt
         },
     ],
-    model="llama-3.3-70b-versatile",
+    model="qwen/qwen3.8-27b",
+    reasoning_effort="none",
 )
 ```
 
@@ -48,7 +49,8 @@ response = client.chat.completions.create(
             "content": "Minnesota Twins",
         }
     ],
-    model="llama-3.3-70b-versatile",
+    model="qwen/qwen3.8-27b",
+    reasoning_effort="none",
 )
 print(response.choices[0].message.content)
 ```
@@ -80,7 +82,8 @@ response = client.chat.completions.create(
             "content": "Minnesota Vikings",
         }
     ],
-    model="llama-3.3-70b-versatile",
+    model="qwen/qwen3.8-27b",
+    reasoning_effort="none",
 )
 ```
 
@@ -119,7 +122,8 @@ def classify_team(name):
                 "content": name,
             }
         ],
-        model="llama-3.3-70b-versatile",
+        model="qwen/qwen3.8-27b",
+        reasoning_effort="none",
     )
 
     return response.choices[0].message.content
@@ -149,7 +153,7 @@ Run `python classifier.py` and check the output:
 
 Due its probabilistic nature, the LLM can sometimes return slight variations on the same answer. You can prevent this by adding a validation system that will only accept responses from a pre-defined list.
 
-{emphasize-lines="9-12,31-37"}
+{emphasize-lines="9-12,32-38"}
 ```python
 def classify_team(name):
     prompt = """
@@ -176,7 +180,8 @@ def classify_team(name):
                 "content": name,
             }
         ],
-        model="llama-3.3-70b-versatile",
+        model="qwen/qwen3.8-27b",
+        reasoning_effort="none",
     )
 
     answer = response.choices[0].message.content
@@ -223,7 +228,7 @@ However, since NHL is not in the provided list, I must inform you that the Minne
 
 For cases when there isn't an accurate answer in your validation list, you can choose to allow an "other" category. Replace the function with this:
 
-{emphasize-lines="14,37"}
+{emphasize-lines="14,38"}
 ```python
 def classify_team(name):
     prompt = """
@@ -252,7 +257,8 @@ def classify_team(name):
                 "content": name,
             }
         ],
-        model="llama-3.3-70b-versatile",
+        model="qwen/qwen3.8-27b",
+        reasoning_effort="none",
     )
 
     answer = response.choices[0].message.content
@@ -282,7 +288,7 @@ And you'll get the answer you expect.
 
 Most LLMs are pre-programmed to be creative and generate a range of responses to same prompt. For structured responses like this, we don't want that. We want consistency. So it's a good idea to ask the LLM to be more straightforward by reducing a creativity setting known as `temperature` to zero.
 
-{emphasize-lines="29"}
+{emphasize-lines="30"}
 ```python
 def classify_team(name):
     prompt = """
@@ -311,7 +317,8 @@ def classify_team(name):
                 "content": name,
             }
         ],
-        model="llama-3.3-70b-versatile",
+        model="qwen/qwen3.8-27b",
+        reasoning_effort="none",
         temperature=0,
     )
 
@@ -394,7 +401,8 @@ def classify_team(name):
                 "content": name,
             }
         ],
-        model="llama-3.3-70b-versatile",
+        model="qwen/qwen3.8-27b",
+        reasoning_effort="none",
         temperature=0,
     )
 

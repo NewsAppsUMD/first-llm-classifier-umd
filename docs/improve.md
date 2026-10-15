@@ -98,7 +98,8 @@ Ensure that the number of classifications in your output matches the number of b
                 "content": "\n".join(name_list),
             }
         ],
-        model="llama-3.3-70b-versatile",
+        model="qwen/qwen3.8-27b",
+        reasoning_effort="none",
         temperature=0,
     )
 

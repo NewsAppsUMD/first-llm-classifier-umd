@@ -1,0 +1,10 @@
+# Packages used by the tutorial. Installed automatically when a Codespace is created.
+groq
+retry
+rich
+pandas
+scikit-learn
+matplotlib
+seaborn
+ipykernel
+ipywidgets

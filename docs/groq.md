@@ -27,3 +27,7 @@ A popup will appear with your key. Copy it to your clipboard. I've redacted my k
 Now, go to the Settings page of your GitHub repository and add your Groq API key as a new Secret in the Codespaces section under "Secrets and variables"
 
 ![Groq codespaces](/_static/groq-codespaces.png)
+
+:::{admonition} Note
+This class uses Groq's `qwen/qwen3.8-27b` model. Groq lists it as a "preview" model, which means it could be retired on short notice. If it disappears, pick another model from [Groq's list](https://console.groq.com/docs/models) and swap its name into the `model` argument in the code that follows.
+:::

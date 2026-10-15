@@ -20,6 +20,10 @@ By the end, you will understand how LLM classifiers can outperform traditional m
 
 This course is free. Anyone who has dabbled with code and AI is qualified to work through the materials. A curious mind and good attitude are all that’s required, but a familiarity with Python will certainly come in handy.
 
+## Try it in your browser
+
+Want to see a classifier work without installing anything? The <a href="playground/index.html">browser playground</a> lets you run the same kind of classifier with your own Anthropic or OpenAI API key, and scores it against the hand-labeled sample.
+
 ## Table of contents
 
 ```{toctree}
@@ -30,6 +34,7 @@ This course is free. Anyone who has dabbled with code and AI is qualified to wor
 our-mission
 llm-wtf
 groq
+codespaces
 prompting-with-python
 structured-responses
 bulk-prompts

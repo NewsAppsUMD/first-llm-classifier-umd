@@ -1,0 +1,22 @@
+{
+  "name": "First LLM Classifier",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "postCreateCommand": "pip install --user -r requirements.txt",
+  "secrets": {
+    "GROQ_API_KEY": {
+      "description": "Your API key from https://console.groq.com/keys. Used to send prompts to the qwen/qwen3.8-27b model.",
+      "documentationUrl": "https://console.groq.com/docs/quickstart"
+    }
+  },
+  "customizations": {
+    "codespaces": {
+      "openFiles": ["README.md"]
+    },
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-toolsai.jupyter"
+      ]
+    }
+  }
+}
