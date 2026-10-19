@@ -33,7 +33,8 @@
 <div class="row">
   <div><label for="provider">Provider</label>
     <select id="provider"><option value="anthropic">Anthropic</option><option value="openai">OpenAI</option></select></div>
-  <div><label for="model">Model</label><input type="text" id="model"></div>
+  <div><label for="model">Model</label><select id="model"></select>
+    <input type="text" id="customModel" placeholder="Model ID" hidden style="margin-top:.4rem"></div>
   <div><label for="key">API key</label><input type="password" id="key" autocomplete="off"></div>
 </div>
 <label><input type="checkbox" id="remember"> Remember this key in this browser</label>
@@ -69,7 +70,22 @@ Other</textarea>
 
 <script>
 const $ = id => document.getElementById(id);
-const DEFAULT_MODELS = { anthropic: "claude-haiku-5-5", openai: "gpt-4o-mini" };
+// First entry in each list is the default. Cheapest/fastest first, since classification is a high-volume task.
+const MODELS = {
+  anthropic: [
+    ["claude-haiku-5-5", "Claude Haiku 5.5 (fastest, cheapest)"],
+    ["claude-sonnet-5-5", "Claude Sonnet 5.5"],
+    ["claude-opus-5-5", "Claude Opus 5.5"],
+    ["claude-fable-5-1", "Claude Fable 5.1 (most capable)"],
+  ],
+  openai: [
+    ["gpt-6-luna", "GPT-6 Luna (most efficient)"],
+    ["gpt-6.1-sol", "GPT-6.1 Sol"],
+    ["gpt-6-astra", "GPT-6 Astra (flagship)"],
+  ],
+};
+const CUSTOM = "__custom__";
+const modelId = () => $("model").value === CUSTOM ? $("customModel").value.trim() : $("model").value;
 $("prompt").value = `You are an AI model trained to categorize organizations based on their names.
 
 I will provide a list of organization names separated by new lines.
@@ -88,11 +104,18 @@ const store = {
 };
 function setProvider() {
   const p = $("provider").value;
-  $("model").value = store.get("model_" + p) || DEFAULT_MODELS[p];
+  $("model").innerHTML = MODELS[p].map(([id, name]) => `<option value="${id}">${name}</option>`).join("") +
+    `<option value="${CUSTOM}">Other (type a model ID)...</option>`;
+  const saved = store.get("model_" + p);
+  if (saved && MODELS[p].some(([id]) => id === saved)) $("model").value = saved;
+  else if (saved) { $("model").value = CUSTOM; $("customModel").value = saved; }
+  $("customModel").hidden = $("model").value !== CUSTOM;
   $("key").value = store.get("key_" + p) || "";
   $("remember").checked = !!store.get("key_" + p);
 }
-$("provider").onchange = setProvider; setProvider();
+$("provider").onchange = setProvider;
+$("model").onchange = () => { $("customModel").hidden = $("model").value !== CUSTOM };
+setProvider();
 
 // ---------- CSV ----------
 function parseCSV(text) {
@@ -138,14 +161,14 @@ $("loadSample").onclick = async () => {
 
 // ---------- LLM calls ----------
 async function callLLM(system, user) {
-  const provider = $("provider").value, key = $("key").value.trim(), model = $("model").value.trim();
+  const provider = $("provider").value, key = $("key").value.trim(), model = modelId();
   let res, data;
   if (provider === "anthropic") {
     res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01",
                  "anthropic-dangerous-direct-browser-access": "true" },
-      body: JSON.stringify({ model, max_tokens: 2048, temperature: 0, system, messages: [{ role: "user", content: user }] }),
+      body: JSON.stringify({ model, max_tokens: 8192, system, messages: [{ role: "user", content: user }] }),
     });
     data = await res.json();
     if (!res.ok) throw new Error(data.error?.message || res.statusText);
@@ -209,8 +232,9 @@ $("run").onclick = async () => {
   const cats = $("categories").value.split("\n").map(s => s.trim()).filter(Boolean);
   if (cats.length < 2) return alert("Add at least two categories.");
   if (!$("key").value.trim()) return alert("Paste an API key first.");
+  if (!modelId()) return alert("Enter a model ID.");
   const p = $("provider").value;
-  store.set("model_" + p, $("model").value);
+  store.set("model_" + p, modelId());
   $("remember").checked ? store.set("key_" + p, $("key").value) : store.del("key_" + p);
 
   const col = $("textcol").value, size = +$("batch").value || 20;
