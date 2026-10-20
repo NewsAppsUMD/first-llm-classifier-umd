@@ -42,7 +42,8 @@
 <h2>2. Data</h2>
 <div class="row">
   <div><label for="file">CSV file</label><input type="file" id="file" accept=".csv"></div>
-  <div><label>&nbsp;</label><button id="loadSample">Load 50 random Maryland grantees</button></div>
+  <div><label>&nbsp;</label><button id="loadSample">Load sample.csv (250 Maryland grantees)</button></div>
+  <div><label>&nbsp;</label><button id="loadRandom">Load 50 random Maryland grantees</button></div>
 </div>
 <div class="row">
   <div><label for="textcol">Column to classify</label><select id="textcol"></select></div>
@@ -155,6 +156,10 @@ function loadData(text, name) {
 $("file").onchange = async e => { const f = e.target.files[0]; if (f) loadData(await f.text(), f.name) };
 const GRANTEES_URL = "https://raw.githubusercontent.com/dwillis/datajournalismbook-maryland/refs/heads/main/data/grantees.csv";
 $("loadSample").onclick = async () => {
+  try { const r = await fetch("sample.csv"); if (!r.ok) throw new Error(r.status); loadData(await r.text(), "sample.csv") }
+  catch (err) { $("dataInfo").textContent = "Could not load sample.csv (" + err.message + "). If you opened this page as a file, serve it over http instead." }
+};
+$("loadRandom").onclick = async () => {
   try {
     const r = await fetch(GRANTEES_URL); if (!r.ok) throw new Error(r.status);
     const { header, rows: all } = parseCSV(await r.text());

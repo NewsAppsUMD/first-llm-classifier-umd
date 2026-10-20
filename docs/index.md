@@ -22,7 +22,7 @@ This course is free. Anyone who has dabbled with code and AI is qualified to wor
 
 ## Try it in your browser
 
-Want to see a classifier work without installing anything? The <a href="playground/index.html">browser playground</a> lets you run the same kind of classifier with your own Anthropic or OpenAI API key on a random sample of 50 Maryland grantees.
+Want to see a classifier work without installing anything? The <a href="playground/index.html">browser playground</a> lets you run the same kind of classifier with your own Anthropic or OpenAI API key, and scores it against the hand-labeled sample. You can also try it on 50 random Maryland grantees.
 
 ## Table of contents
 
