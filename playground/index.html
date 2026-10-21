@@ -54,13 +54,12 @@
 
 <h2>3. Prompt</h2>
 <label for="categories">Categories (one per line)</label>
-<textarea id="categories" rows="5">Local Government
-Higher Education
+<textarea id="categories" rows="5">Higher Education
 Museum
-Other</textarea>
+Local Government</textarea>
 <label for="prompt">System prompt</label>
 <textarea id="prompt" rows="12"></textarea>
-<p class="note">The categories above and a JSON-list instruction are added after this text automatically. Batch size: <input type="number" id="batch" min="1" max="50" value="20" style="width:5rem"></p>
+<p class="note">The categories above (plus "Other") and a JSON-list instruction are added after this text automatically. Batch size: <input type="number" id="batch" min="1" max="50" value="20" style="width:5rem"></p>
 
 <p><button class="primary" id="run" disabled>Classify</button> <button id="stop" disabled>Stop</button> <button id="download" disabled>Download CSV</button></p>
 <div id="log"></div>
@@ -242,6 +241,8 @@ const log = s => { $("log").textContent += s + "\n" };
 // ---------- run ----------
 $("run").onclick = async () => {
   const cats = $("categories").value.split("\n").map(s => s.trim()).filter(Boolean);
+  // The prompt tells the model to use "Other" for anything that doesn't fit, so always allow it
+  if (!cats.includes("Other")) cats.push("Other");
   if (cats.length < 2) return alert("Add at least two categories.");
   if (!$("key").value.trim()) return alert("Paste an API key first.");
   if (!modelId()) return alert("Enter a model ID.");
